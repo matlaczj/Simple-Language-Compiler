@@ -1,0 +1,9 @@
+name: simple-lang-compiler-env
+
+dependencies:
+  - ipython
+  - ipykernel
+  - flake8
+  - black
+  - typing
+  - pip

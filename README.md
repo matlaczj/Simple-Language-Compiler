@@ -27,3 +27,12 @@ For the final defense of the project, bring a printed **short manual** of the de
 - support for structures (5 points),
 - class support (5 points),
 - dynamic typing (values in boxes) (5 points).
+
+# installation
+- install docker
+- install vscode
+- install "ms-vscode-remote.remote-containers" extention in vscode
+- reload window
+- accept to reopen in dev container
+- wait for installation and be patient
+- congrats, now your development environment is under your full control
