@@ -27,7 +27,7 @@ conditionalStatement:
 loopStatement: 'while' expression '{' statement* '}';
 
 functionDeclaration:
-	'function' typed_id '(' parameters? ')' '{' statement* '}';
+	'function' typed_id '(' parameters? ')' '{' statement* 'return' expression '}';
 
 parameters: typed_id (',' typed_id)*;
 
