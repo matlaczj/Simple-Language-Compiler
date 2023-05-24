@@ -1,18 +1,23 @@
 grammar SimpleLang;
 
-// Parser rules
+// PARSER RULES
 program: statement*;
 
 statement:
 	assignment
-	| printStatement
 	| conditionalStatement
 	| loopStatement
-	| functionDeclaration;
+	| functionDeclaration
+	| printStatement
+	| readStatement;
+
+declaration: typed_id ';';
+
+typed_id: type ID;
+
+type: 'int' | 'float' | 'string' | 'bool';
 
 assignment: ID '=' expression ';';
-
-printStatement: 'print' expression ';';
 
 conditionalStatement:
 	'if' expression '{' statement* '}' (
@@ -22,25 +27,44 @@ conditionalStatement:
 loopStatement: 'while' expression '{' statement* '}';
 
 functionDeclaration:
-	'function' ID '(' parameters? ')' '{' statement* '}';
+	'function' typed_id '(' parameters? ')' '{' statement* '}';
 
-parameters: ID (',' ID)*;
+parameters: typed_id (',' typed_id)*;
+
+printStatement: 'print' expression ';';
+
+readStatement: 'read' ID ';';
 
 expression:
-	expression ('*' | '/' | '+' | '-') expression
+	expression (
+		'*'
+		| '/'
+		| '+'
+		| '-'
+		| '=='
+		| '!='
+		| '<'
+		| '>'
+		| '<='
+		| '>='
+	) expression
 	| '(' expression ')'
-	| ID '(' arguments? ')'
+	| functionCall
 	| INT
 	| FLOAT
 	| STRING
-	| ID
-	| ID '[' expression ']';
+	| BOOL
+	| ID;
+
+functionCall: ID '(' arguments? ')';
 
 arguments: expression (',' expression)*;
 
-// Lexer rules
+// LEXER RULES
 ID: [a-zA-Z_][a-zA-Z0-9_]*;
 INT: [0-9]+;
 FLOAT: [0-9]+ '.' [0-9]*;
 STRING: '"' .*? '"';
-WS: [ \t\r\n]+ -> skip;
+BOOL: 'true' | 'false';
+WHITESPACE: [ \t\r\n]+ -> skip;
+COMMENT: '//' .*? '\n' -> skip;
