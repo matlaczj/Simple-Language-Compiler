@@ -19,3 +19,8 @@ ENV PYTHONPATH "${PYTHONPATH}:/workspaces/simple_lang_compiler/src"
 # ensures that the python output i.e. the stdout and stderr streams are sent straight to terminal
 ARG pythonunbuffered_value=1
 ENV PYTHONUNBUFFERED=$pythonunbuffered_value
+
+# to install java 11 and add it to the path
+RUN sudo apt-get update && \
+    sudo apt-get install -y openjdk-11-jdk
+ENV PATH="/usr/lib/jvm/java-11-openjdk-amd64/bin:${PATH}"
