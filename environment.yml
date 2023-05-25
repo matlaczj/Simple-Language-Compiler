@@ -6,4 +6,5 @@ dependencies:
   - flake8
   - black
   - typing
-  - pip
+  - pip:
+    - antlr4-python3-runtime
