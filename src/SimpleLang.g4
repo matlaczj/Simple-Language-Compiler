@@ -1,23 +1,48 @@
 grammar SimpleLang;
 
 // PARSER RULES
-program: statement*;
+program: statement+;
 
 statement:
-	assignment
-	| conditionalStatement
+	declaration
+	| assignment
 	| loopStatement
 	| functionDeclaration
+	| functionCall
+	| conditionalStatement
 	| printStatement
 	| readStatement;
 
 declaration: typed_id ';';
+typed_id: type id;
 
-typed_id: type ID;
+assignment: id '=' value ';';
 
-type: 'int' | 'float' | 'string' | 'bool';
+value: expression;
+id: ID;
 
-assignment: ID '=' expression ';';
+expression:
+	expression operator expression
+	| INT
+	| FLOAT
+	| BOOL
+	| STRING
+	| id
+	| functionCall
+	| expression operator '(' expression ')';
+
+operator:
+	'+'
+	| '-'
+	| '*'
+	| '/'
+	| '>'
+	| '<'
+	| '>='
+	| '<='
+	| '==';
+
+type: 'int' | 'float' | 'bool' | 'string';
 
 conditionalStatement:
 	'if' expression '{' statement* '}' (
@@ -27,34 +52,12 @@ conditionalStatement:
 loopStatement: 'while' expression '{' statement* '}';
 
 functionDeclaration:
-	'function' typed_id '(' parameters? ')' '{' statement* 'return' expression '}';
-
+	'function' typed_id '(' parameters? ')' '{' statement* 'return' expression ';' '}';
 parameters: typed_id (',' typed_id)*;
 
 printStatement: 'print' expression ';';
 
 readStatement: 'read' ID ';';
-
-expression:
-	expression (
-		'*'
-		| '/'
-		| '+'
-		| '-'
-		| '=='
-		| '!='
-		| '<'
-		| '>'
-		| '<='
-		| '>='
-	) expression
-	| '(' expression ')'
-	| functionCall
-	| INT
-	| FLOAT
-	| STRING
-	| BOOL
-	| ID;
 
 functionCall: ID '(' arguments? ')';
 
