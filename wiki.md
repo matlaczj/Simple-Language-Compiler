@@ -11,5 +11,5 @@ antlr4-parse /workspaces/simple_lang_compiler/src/SimpleLang.g4 program -gui inp
 
 ## Generating python3 parser, lexer, visitor
 ```bash
-    antlr4 -Dlanguage=Python3 -visitor /workspaces/simple_lang_compiler/src/SimpleLang.g4
+    antlr4 -Dlanguage=Python3 -visitor /workspaces/simple_lang_compiler/src/SimpleLang.g4 -o /workspaces/simple_lang_compiler/src
 ```

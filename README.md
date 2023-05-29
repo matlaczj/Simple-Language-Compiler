@@ -11,10 +11,10 @@ The front end of the compiler, i.e. the lexical-syntactic analysis should be per
 - support for basic arithmetic operations,
 - identifying errors during lexical and syntactic analysis.
 ### Extensions:
-- ~~support for array variables (3 points)~~,
-- ~~number matrix support (5 points)~~,
+- support for array variables (3 points),
+- number matrix support (5 points),
 - support for logical values (2 points),
-- ~~support for numbers with different precision (e.g. Float32, Float64) (5 points)~~,
+- support for numbers with different precision (e.g. Float32, Float64) (5 points),
 - support for the type of string (string) (3 points).
 
 ## Stage 2: Program flow control (15 pts)
@@ -25,8 +25,8 @@ For the final defense of the project, bring a printed **short manual** of the de
 - variable scope support (local and global).
 ### Suggested extensions:
 - support for structures (5 points),
-- ~~class support (5 points)~~,
-- ~~dynamic typing (values in boxes) (5 points)~~.
+- class support (5 points),
+- dynamic typing (values in boxes) (5 points).
 
 # installation
 - install docker

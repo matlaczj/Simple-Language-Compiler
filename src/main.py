@@ -1,9 +1,10 @@
+# type: ignore
 import antlr4
-import llvmlite.ir as ir
+from llvmlite import ir
 from SimpleLangLexer import SimpleLangLexer
 from SimpleLangParser import SimpleLangParser
 from SimpleLangVisitor import SimpleLangVisitor
-
+from source_code import SOURCE_CODE
 
 ruleNames = [
     "program",
@@ -169,39 +170,11 @@ class SimpleLangVisitorImpl(SimpleLangVisitor):
 
 
 # Main program
-INPUT_TEXT = """
-int a;
-float b;
-a = 10;
-b = 2.5;
-int c;
-c = a + 5;
-if c > 10 {
-    print "Condition is true";
-} else {
-    print "Condition is false";
-}
-while b > 0 {
-    b = b - 1;
-}
-function int multiply(int x, int y) {
-    int result;
-    result = x * y;
-    return result;
-}
-int product;
-product = multiply(a, 5);
-print "Product: " + product;
-read c;
-"""
-
-
-lexer = SimpleLangLexer(antlr4.InputStream(INPUT_TEXT))
+lexer = SimpleLangLexer(antlr4.InputStream(SOURCE_CODE))
 token_stream = antlr4.CommonTokenStream(lexer)
 parser = SimpleLangParser(token_stream)
-tree = parser.program()
-
+parse_tree = parser.program()
 visitor = SimpleLangVisitorImpl()
-visitor.visit(tree)
+visitor.visit(parse_tree)
 
-print(visitor.module) # LLVM
+print(visitor.module)  # LLVM

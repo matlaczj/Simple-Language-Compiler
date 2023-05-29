@@ -161,3 +161,11 @@ cython_debug/
 
 # ANTLR
 .antlr/
+src/SimpleLang.interp
+src/SimpleLang.tokens
+src/SimpleLangLexer.interp
+src/SimpleLangLexer.py
+src/SimpleLangLexer.tokens
+src/SimpleLangListener.py
+src/SimpleLangParser.py
+src/SimpleLangVisitor.py
