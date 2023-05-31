@@ -24,9 +24,3 @@ ENV PYTHONUNBUFFERED=$pythonunbuffered_value
 RUN sudo apt-get update && \
     sudo apt-get install -y openjdk-11-jdk
 ENV PATH="/usr/lib/jvm/java-11-openjdk-amd64/bin:${PATH}"
-
-# to download antlr4 jar file
-RUN mkdir -p /workspaces/simple_lang_compiler/lib && \
-    mkdir -p /workspaces/simple_lang_compiler/antlr && \
-    cd /workspaces/simple_lang_compiler/lib && \
-    wget https://www.antlr.org/download/antlr-4.7.2-complete.jar

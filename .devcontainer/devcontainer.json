@@ -57,7 +57,7 @@
 				"KevinRose.vsc-python-indent",
 				"njqdev.vscode-python-typehint",
 				"ms-python.pylint",
-				"mike-lischke.vscode-antlr4"
+				"ncthbrt.antlr4"
 			]
 		}
 	},

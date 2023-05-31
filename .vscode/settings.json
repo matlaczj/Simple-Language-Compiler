@@ -7,12 +7,4 @@
     "editor.stickyScroll.enabled": true,
     "workbench.colorTheme": "Visual Studio Dark",
     "workbench.startupEditor": "none",
-    "antlr4.generation": {
-        "alternativeJar": "/workspaces/simple_lang_compiler/lib/antlr-4.3-complete.jar",
-        "language": "Python3",
-        "outputDir": "/workspaces/simple_lang_compiler/antlr",
-        "mode": "internal",
-        "listeners": true,
-        "visitors": true
-    }
 }
