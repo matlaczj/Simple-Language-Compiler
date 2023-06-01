@@ -66,6 +66,21 @@ class LLVMCodeGenerator(MinLangVisitor):
         elif operator == "/":
             return "div"
 
+    def visitRelationalOperator(self, ctx):
+        operator = ctx.getText()
+        if operator == ">":
+            return "cmp_sgt"
+        elif operator == "<":
+            return "cmp_slt"
+        elif operator == ">=":
+            return "cmp_sge"
+        elif operator == "<=":
+            return "cmp_sle"
+        elif operator == "==":
+            return "cmp_eq"
+        elif operator == "!=":
+            return "cmp_ne"
+
     def visitExpression(self, ctx):
         if ctx.getChildCount() == 1:
             return self.visit(ctx.getChild(0))
@@ -73,52 +88,68 @@ class LLVMCodeGenerator(MinLangVisitor):
             left = self.visit(ctx.getChild(0))
             right = self.visit(ctx.getChild(2))
             operator = self.visit(ctx.getChild(1))
+            if left.type != right.type:
+                raise ValueError("Mismatched types in arithmetic expression.")
             if operator in ["add", "sub", "mul", "div"]:
-                if left.type != right.type:
-                    raise ValueError("Mismatched types in arithmetic expression.")
-                if operator == "add":
-                    return self.builder.add(left, right, "addtmp")
-                elif operator == "sub":
-                    return self.builder.sub(left, right, "subtmp")
-                elif operator == "mul":
-                    return self.builder.mul(left, right, "multmp")
-                elif operator == "div":
-                    return self.builder.sdiv(left, right, "divtmp")
+                if isinstance(left.type, ir.types.FloatType):
+                    if operator == "add":
+                        return self.builder.fadd(left, right, "addtmp")
+                    elif operator == "sub":
+                        return self.builder.fsub(left, right, "subtmp")
+                    elif operator == "mul":
+                        return self.builder.fmul(left, right, "multmp")
+                    elif operator == "div":
+                        return self.builder.fdiv(left, right, "divtmp")
+                elif isinstance(left.type, ir.types.IntType):
+                    if operator == "add":
+                        return self.builder.add(left, right, "addtmp")
+                    elif operator == "sub":
+                        return self.builder.sub(left, right, "subtmp")
+                    elif operator == "mul":
+                        return self.builder.mul(left, right, "multmp")
+                    elif operator == "div":
+                        return self.builder.sdiv(left, right, "divtmp")
+                else:
+                    raise ValueError("Unsupported type in arithmetic expression.")
             elif operator in [
-                "icmp_sgt",
-                "icmp_slt",
-                "icmp_sge",
-                "icmp_sle",
-                "icmp_eq",
+                "cmp_sgt",
+                "cmp_slt",
+                "cmp_sge",
+                "cmp_sle",
+                "cmp_eq",
+                "cmp_ne",
             ]:
-                if left.type != right.type:
-                    raise ValueError("Mismatched types in relational expression.")
-                if operator == "icmp_sgt":
-                    return self.builder.icmp_signed(">", left, right, "sgttmp")
-                elif operator == "icmp_slt":
-                    return self.builder.icmp_signed("<", left, right, "slttmp")
-                elif operator == "icmp_sge":
-                    return self.builder.icmp_signed(">=", left, right, "sgetmp")
-                elif operator == "icmp_sle":
-                    return self.builder.icmp_signed("<=", left, right, "sletmp")
-                elif operator == "icmp_eq":
-                    return self.builder.icmp_signed("==", left, right, "eqtmp")
+                if isinstance(left.type, ir.types.FloatType):
+                    if operator == "cmp_sgt":
+                        return self.builder.fcmp_ordered(">", left, right, "sgttmp")
+                    elif operator == "cmp_slt":
+                        return self.builder.fcmp_ordered("<", left, right, "slttmp")
+                    elif operator == "cmp_sge":
+                        return self.builder.fcmp_ordered(">=", left, right, "sgetmp")
+                    elif operator == "cmp_sle":
+                        return self.builder.fcmp_ordered("<=", left, right, "sletmp")
+                    elif operator == "cmp_eq":
+                        return self.builder.fcmp_ordered("==", left, right, "eqtmp")
+                    elif operator == "cmp_ne":
+                        return self.builder.fcmp_ordered("!=", left, right, "netmp")
+                elif isinstance(left.type, ir.types.IntType):
+                    if operator == "cmp_sgt":
+                        return self.builder.icmp_signed(">", left, right, "sgttmp")
+                    elif operator == "cmp_slt":
+                        return self.builder.icmp_signed("<", left, right, "slttmp")
+                    elif operator == "cmp_sge":
+                        return self.builder.icmp_signed(">=", left, right, "sgetmp")
+                    elif operator == "cmp_sle":
+                        return self.builder.icmp_signed("<=", left, right, "sletmp")
+                    elif operator == "cmp_eq":
+                        return self.builder.icmp_signed("==", left, right, "eqtmp")
+                    elif operator == "cmp_ne":
+                        return self.builder.icmp_signed("!=", left, right, "netmp")
+                else:
+                    raise ValueError("Unsupported type in relational expression.")
 
     def visitOperator(self, ctx):
         return self.visitChildren(ctx)
-
-    def visitRelationalOperator(self, ctx):
-        operator = ctx.getText()
-        if operator == ">":
-            return "icmp_sgt"
-        elif operator == "<":
-            return "icmp_slt"
-        elif operator == ">=":
-            return "icmp_sge"
-        elif operator == "<=":
-            return "icmp_sle"
-        elif operator == "==":
-            return "icmp_eq"
 
     def visitType(self, ctx):
         type_name = ctx.getText()

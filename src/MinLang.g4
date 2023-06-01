@@ -35,7 +35,8 @@ relationalOperator:
     | '<'
     | '>='
     | '<='
-    | '==';
+    | '=='
+    | '!=';
 
 type: 'int' | 'float' | 'bool' | 'string';
 printStatement: 'print' expression ';';
