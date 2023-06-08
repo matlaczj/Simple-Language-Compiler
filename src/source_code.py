@@ -1,15 +1,17 @@
-SOURCE_CODE = """
-float f;
-f = 1.0;
-float g;
-g = 2.5;
-bool b;
-b = f > g;
-b = f < g;
-b = f >= g;
-b = f <= g;
-b = f == g;
-b = f != g;
-print b;
-read f;
+SOURCE_CODE = r"""
+int f;
+f = 1;
+
+function int test (int a, int b) {
+    int z;
+    z = a + b;
+    return z;
+}
+int c;
+c = 1;
+
+test(c, c);
+
+
+int z;
 """

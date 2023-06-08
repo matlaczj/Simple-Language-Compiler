@@ -7,17 +7,21 @@ statement:
 	declarationStatement
 	| assignmentStatement
 	| printStatement
-	| readStatement;
+	| readStatement
+    | functionDeclaration
+    | functionCall;
 
 declarationStatement: type id ';';
 assignmentStatement: id '=' expression ';';
 id: ID;
+functionId: ID;
 
 expression:
 	expression operator expression
     | '(' expression ')'
 	| literal
-	| id;
+	| id
+    | functionCall;
 
 literal: INT | FLOAT | BOOL | STRING;
 
@@ -37,6 +41,14 @@ relationalOperator:
     | '<='
     | '=='
     | '!=';
+
+functionDeclaration: 'function' functionType functionId '(' parameterList ')' block;
+parameterList: (type id (',' type id)*);
+block: '{' statement* returnStatement '}';
+returnStatement: 'return' expression ';';
+functionCall: functionId '(' argumentList ')';
+argumentList: (expression (',' expression)*);
+functionType: type;
 
 type: 'int' | 'float' | 'bool' | 'string';
 printStatement: 'print' expression ';';

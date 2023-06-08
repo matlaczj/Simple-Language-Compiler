@@ -15,7 +15,11 @@ class LLVMCodeGenerator(MinLangVisitor):
             ftype=ir.FunctionType(return_type=ir.IntType(32), args=[]),
             name="main",
         ).append_basic_block(name="entry")
+        self.function_declaration = {}
+        self.functions = []
+        self.inside_block = False
         self.builder = ir.IRBuilder(entry_block)
+        self.local_builder = None
         self.printf_counter = 0
         self.scanf_counter = 0
 
@@ -27,18 +31,44 @@ class LLVMCodeGenerator(MinLangVisitor):
     def visitDeclarationStatement(self, ctx):
         var_type = self.visit(ctx.type_())
         var_name = ctx.id_().getText()
+        if var_name in self.variables:
+            raise NameError(f"Variable '{var_name}' already declared.")
+
+        if self.inside_block:
+            var_name = self.function_declaration['name']+'.'+var_name
+            alloca = self.builder.alloca(var_type, name=var_name)
+            self.variables[var_name] = alloca
+            return
+
         alloca = self.builder.alloca(var_type, name=var_name)
         self.variables[var_name] = alloca
 
     def visitAssignmentStatement(self, ctx):
         var_name = ctx.id_().getText()
+        if self.inside_block:
+            var_name = self.function_declaration['name'] + '.' + var_name
+
         if var_name not in self.variables:
             raise NameError(f"Variable '{var_name}' is not declared.")
+
         var_value = self.visit(ctx.expression())
         self.builder.store(var_value, self.variables[var_name])
 
     def visitId(self, ctx):
         var_name = ctx.getText()
+        if self.inside_block and var_name not in [self.function_declaration['parameters'][i][1] for i in range(len(self.function_declaration['parameters']))]:
+            var_name = self.function_declaration['name']+'.'+var_name
+
+        if self.function_declaration.get('paramList', False):
+            self.function_declaration['parameters'][-1].append(var_name)
+            return
+
+        if self.inside_block and var_name not in self.variables:
+            for i in range(len(self.function_declaration['parameters'])):
+                if var_name in self.function_declaration['parameters'][i]:
+                    return self.current_function.args[i]
+            raise NameError(f"Variable '{var_name}' is not declared.")
+
         if var_name not in self.variables:
             raise NameError(f"Variable '{var_name}' is not declared.")
         return self.builder.load(self.variables[var_name])
@@ -153,16 +183,22 @@ class LLVMCodeGenerator(MinLangVisitor):
 
     def visitType(self, ctx):
         type_name = ctx.getText()
+        llvm_type = None
+
         if type_name == "int":
-            return ir.IntType(32)
+            llvm_type = ir.IntType(32)
         elif type_name == "float":
-            return ir.FloatType()
+            llvm_type = ir.FloatType()
         elif type_name == "bool":
-            return ir.IntType(1)
+            llvm_type = ir.IntType(1)
         elif type_name == "string":
             raise NotImplementedError("String literals are not implemented yet.")
         else:
             raise ValueError("Unknown type: " + type_name)
+
+        if self.function_declaration.get('paramList', False):
+            self.function_declaration['parameters'].append([llvm_type])
+        return llvm_type
 
     def visitPrintStatement(self, ctx):
         value = self.visit(ctx.expression())
@@ -230,3 +266,64 @@ class LLVMCodeGenerator(MinLangVisitor):
         )
         var_alloca = self.variables[var_name]
         self.builder.call(scanf_func, [scan_format_ptr, var_alloca])
+
+    def get_llvm_type(self, type_name):
+        llvm_type = None
+        if type_name == "int":
+            llvm_type = ir.IntType(32)
+        elif type_name == "float":
+            llvm_type = ir.FloatType()
+        elif type_name == "bool":
+            llvm_type = ir.IntType(1)
+        elif type_name == "string":
+            raise NotImplementedError("String literals are not implemented yet.")
+        else:
+            raise ValueError("Unknown type: " + type_name)
+        return llvm_type
+
+    def visitFunctionDeclaration(self, ctx):
+        return self.visitChildren(ctx)
+
+    def visitParameterList(self, ctx):
+        return self.visitChildren(ctx)
+
+    def visitBlock(self, ctx):
+        return_type = self.get_llvm_type(self.function_declaration['type'])
+        parameter_types = [self.function_declaration['parameters'][i][0] for i in range(len(self.function_declaration['parameters']))]
+        function_type = ir.FunctionType(return_type, parameter_types)
+        
+        self.current_function = ir.Function(self.module, function_type, name=self.function_declaration['name'])
+        self.inside_block = True
+        basic_block = self.current_function.append_basic_block(name="entry")
+        self.temp_builder = self.builder
+        self.builder = ir.IRBuilder(basic_block)
+
+        self.function_declaration['paramList'] = False
+        self.visitChildren(ctx)
+        self.builder = self.temp_builder
+        self.inside_block = False
+
+    def visitFunctionType(self, ctx):
+        self.function_declaration['type'] = ctx.getText()
+        self.function_declaration['parameters'] = []
+        return self.visitChildren(ctx)
+
+    def visitFunctionId(self, ctx):
+        self.function_declaration['name'] = ctx.getText()
+        self.function_declaration['paramList'] = True
+        return self.visitChildren(ctx)
+
+    def visitReturnStatement(self, ctx):
+        return self.visitChildren(ctx)
+
+    def visitReturnStatement(self, ctx):
+        self.builder.ret(self.visitExpression(ctx.expression()))
+
+    def visitFunctionCall(self, ctx):
+        function_name = ctx.getChild(0).getText()
+        if function_name not in self.module.globals:
+            raise NameError(f"Function '{function_name}' is not declared.")
+        function = self.module.globals[function_name]
+        arguments = ctx.argumentList().getText().split(',')
+        args = [self.builder.load(self.variables[arg]) for arg in arguments]
+        return self.builder.call(function, args)
