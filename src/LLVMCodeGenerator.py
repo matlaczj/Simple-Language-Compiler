@@ -10,15 +10,16 @@ class LLVMCodeGenerator(MinLangVisitor):
         super().__init__()
         self.module = ir.Module()
         self.variables = {}
-        entry_block = ir.Function(
+        self.main_function = ir.Function(
             module=self.module,
             ftype=ir.FunctionType(return_type=ir.IntType(32), args=[]),
             name="main",
-        ).append_basic_block(name="entry")
+        )
+        self.entry_block = self.main_function.append_basic_block(name="entry")
         self.function_declaration = {}
         self.functions = []
         self.inside_block = False
-        self.builder = ir.IRBuilder(entry_block)
+        self.builder = ir.IRBuilder(self.entry_block)
         self.local_builder = None
         self.printf_counter = 0
         self.scanf_counter = 0
@@ -327,3 +328,34 @@ class LLVMCodeGenerator(MinLangVisitor):
         arguments = ctx.argumentList().getText().split(',')
         args = [self.builder.load(self.variables[arg]) for arg in arguments]
         return self.builder.call(function, args)
+
+    def visitIfStatement(self, ctx): # Todo: go back to entry block after if statement
+        if_block = self.main_function.append_basic_block(name="if_block")
+        else_block = self.main_function.append_basic_block(name="else_block")
+        end_block = self.main_function.append_basic_block(name="end_block")
+        condition = self.visitExpression(ctx.getChild(2))
+
+        self.builder.position_at_end(self.entry_block)
+        self.builder.cbranch(condition, if_block, else_block)
+
+        self.builder.position_at_end(if_block)
+        self.visitStatement(ctx.getChild(4))
+        self.builder.branch(end_block)
+        self.builder.position_at_end(else_block)
+        self.visitStatement(ctx.getChild(6))
+        self.builder.branch(end_block)
+        self.builder.position_at_end(end_block)
+
+    def visitNormalBlock(self, ctx):
+        return self.visitChildren(ctx)
+
+    def visitWhileLoop(self, ctx):  # Todo: go back to entry block after while loop
+        loop_block = self.main_function.append_basic_block(name="loop_block")
+        end_block = self.main_function.append_basic_block(name="loop_end_block")
+
+        condition = self.visitExpression(ctx.getChild(2))
+        self.builder.cbranch(condition, loop_block, end_block)
+        self.builder.position_at_end(loop_block)
+        self.visitStatement(ctx.getChild(4))
+        self.builder.branch(end_block)
+        self.builder.position_at_end(end_block)

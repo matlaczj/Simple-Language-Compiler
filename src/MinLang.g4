@@ -9,7 +9,9 @@ statement:
 	| printStatement
 	| readStatement
     | functionDeclaration
-    | functionCall;
+    | functionCall
+    | ifStatement
+    | whileLoop;
 
 declarationStatement: type id ';';
 assignmentStatement: id '=' expression ';';
@@ -49,6 +51,10 @@ returnStatement: 'return' expression ';';
 functionCall: functionId '(' argumentList ')';
 argumentList: (expression (',' expression)*);
 functionType: type;
+
+normalBlock: '{' statement* '}';
+ifStatement: 'if' '(' expression ')' normalBlock 'else' normalBlock;
+whileLoop: 'while' '(' expression ')' normalBlock;
 
 type: 'int' | 'float' | 'bool' | 'string';
 printStatement: 'print' expression ';';
