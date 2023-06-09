@@ -26,6 +26,8 @@ class LLVMCodeGenerator(MinLangVisitor):
         self.local_builder = None
         self.printf_counter = 0
         self.scanf_counter = 0
+        self.if_counter = 0
+        self.while_counter = 0
 
     def visitProgram(self, ctx):
         self.visitChildren(ctx)
@@ -35,7 +37,7 @@ class LLVMCodeGenerator(MinLangVisitor):
     def visitDeclarationStatement(self, ctx):
         var_type = self.visit(ctx.type_())
         var_name = ctx.id_().getText()
-        if var_name in self.variables:
+        if var_name in self.variables and not self.inside_block:
             raise NameError(f"Variable '{var_name}' already declared.")
 
         if self.inside_block:
@@ -339,9 +341,9 @@ class LLVMCodeGenerator(MinLangVisitor):
 
     # TODO: Go back to entry block after if statement.
     def visitIfStatement(self, ctx):
-        if_block = self.main_function.append_basic_block(name="if_block")
-        else_block = self.main_function.append_basic_block(name="else_block")
-        end_block = self.main_function.append_basic_block(name="end_block")
+        if_block = self.main_function.append_basic_block(name=f"if_block{self.if_counter}")
+        else_block = self.main_function.append_basic_block(name=f"else_block{self.if_counter}")
+        end_block = self.main_function.append_basic_block(name=f"end_block{self.if_counter}")
         condition = self.visitExpression(ctx.getChild(2))
 
         self.builder.position_at_end(self.entry_block)
@@ -354,14 +356,16 @@ class LLVMCodeGenerator(MinLangVisitor):
         self.visitStatement(ctx.getChild(6))
         self.builder.branch(end_block)
         self.builder.position_at_end(end_block)
+        self.entry_block = end_block
+        self.if_counter += 1
 
     def visitNormalBlock(self, ctx):
         return self.visitChildren(ctx)
 
     def visitWhileLoop(self, ctx):
-        loop_condition_block = self.main_function.append_basic_block(name="loop_condition_block")
-        loop_block = self.main_function.append_basic_block(name="loop_block")
-        end_block = self.main_function.append_basic_block(name="loop_end_block")
+        loop_condition_block = self.main_function.append_basic_block(name=f"loop_condition_block{self.while_counter}")
+        loop_block = self.main_function.append_basic_block(name=f"loop_block{self.while_counter}")
+        end_block = self.main_function.append_basic_block(name=f"loop_end_block{self.while_counter}")
         self.builder.branch(loop_condition_block)
         self.builder.position_at_end(loop_condition_block)
         condition = self.visitExpression(ctx.getChild(2))
@@ -370,3 +374,4 @@ class LLVMCodeGenerator(MinLangVisitor):
         self.visitStatement(ctx.getChild(4))
         self.builder.branch(loop_condition_block)
         self.builder.position_at_end(end_block)
+        self.while_counter += 1

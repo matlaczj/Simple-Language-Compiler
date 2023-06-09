@@ -10,6 +10,15 @@ else
 {
     print 0;
 }
+
+if (a > 2)
+{
+    print 1;
+}
+else
+{
+    print 0;
+}
 """,
     "functionDeclarationAndCall": r"""
 function int test (int a, int b) {
@@ -33,5 +42,48 @@ while (a > 0)
 }
 print a;
 """,
+    "baseLineTest": r"""
+// Calculate control signal
+int signal;
+signal = 200;
+
+function int proportional_controller (int k, int error) {
+    int signal;
+    signal = k * error;
+    return signal;
 }
-SOURCE_CODE = SOURCE_CODE["whileLoop"]
+
+int control_signal;
+int k;
+k = 1;
+int error;
+error = 10;
+
+control_signal = proportional_controller(k, signal); // get control signal
+print control_signal;
+// clamp control signal
+if (control_signal > 100) {
+    control_signal = 100;
+}
+else {}
+if (control_signal < 0) {
+    control_signal = 0;
+}
+else {}
+
+print signal;
+print control_signal;
+
+while (control_signal > 90) {
+    print control_signal;
+    control_signal = control_signal - 1;
+}
+
+while (control_signal < 95) {
+    print control_signal;
+    control_signal = control_signal + 1;
+}
+"""
+}
+
+SOURCE_CODE = SOURCE_CODE["baseLineTest"]
