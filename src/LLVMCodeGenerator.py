@@ -358,14 +358,15 @@ class LLVMCodeGenerator(MinLangVisitor):
     def visitNormalBlock(self, ctx):
         return self.visitChildren(ctx)
 
-    # TODO: Go back to entry block after while loop.
     def visitWhileLoop(self, ctx):
+        loop_condition_block = self.main_function.append_basic_block(name="loop_condition_block")
         loop_block = self.main_function.append_basic_block(name="loop_block")
         end_block = self.main_function.append_basic_block(name="loop_end_block")
-
+        self.builder.branch(loop_condition_block)
+        self.builder.position_at_end(loop_condition_block)
         condition = self.visitExpression(ctx.getChild(2))
         self.builder.cbranch(condition, loop_block, end_block)
         self.builder.position_at_end(loop_block)
         self.visitStatement(ctx.getChild(4))
-        self.builder.branch(end_block)
+        self.builder.branch(loop_condition_block)
         self.builder.position_at_end(end_block)
