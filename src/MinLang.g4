@@ -16,6 +16,7 @@ statement:
 declarationStatement: type id ';';
 assignmentStatement: id '=' expression ';';
 id: ID;
+functionId: ID;
 
 expression:
 	expression operator expression
@@ -43,17 +44,17 @@ relationalOperator:
     | '=='
     | '!=';
 
-functionDeclaration: 'function' type id '(' parameterList ')' return_block;
-parameterList: typed_id (',' typed_id)*;
-typed_id: type id;
-return_block: '{' statement* returnStatement '}';
+functionDeclaration: 'function' functionType functionId '(' parameterList ')' block;
+parameterList: (type id (',' type id)*);
+block: '{' statement* returnStatement '}';
 returnStatement: 'return' expression ';';
-functionCall: id '(' argumentList ')';
-argumentList: expression (',' expression)*;
+functionCall: functionId '(' argumentList ')';
+argumentList: (expression (',' expression)*);
+functionType: type;
 
-block: '{' statement* '}';
-ifStatement: 'if' '(' expression ')' block 'else' block;
-whileLoop: 'while' '(' expression ')' block;
+normalBlock: '{' statement* '}';
+ifStatement: 'if' '(' expression ')' normalBlock 'else' normalBlock;
+whileLoop: 'while' '(' expression ')' normalBlock;
 
 type: 'int' | 'float' | 'bool' | 'string';
 printStatement: 'print' expression ';';

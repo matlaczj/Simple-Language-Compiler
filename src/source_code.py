@@ -1,39 +1,37 @@
-SOURCE_CODE = r"""
+SOURCE_CODE = {
+    "ifStatement": r"""
 int a;
-a = 10;
-
-if (a == 10) 
+a = 3;
+if (a > 5) 
 {
-    a = 5;
-    int w;
-    w = a;
+    print 1;
 }
 else
 {
-    a = 10;
+    print 0;
 }
-
-while (a > 0)
-{
-    a = a - 1;
-}
-"""
-
-SOURCE_CODE1 = r"""
-int f;
-f = 1;
-
+""",
+    "functionDeclarationAndCall": r"""
 function int test (int a, int b) {
     int z;
     z = a + b;
     return z;
 }
-int c;
-c = 1;
-
-test(c, c);
-
-
-
-int z;
-"""
+int a;
+a = 1;
+int b;
+b = 1;
+print test(a, b);
+""",
+    "whileLoop": r"""
+int a;
+a = 10;
+while (a > 0)
+{
+    print a;
+    a = a - 1; 
+}
+print a;
+""",
+}
+SOURCE_CODE = SOURCE_CODE["whileLoop"]
