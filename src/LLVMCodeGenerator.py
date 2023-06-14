@@ -375,3 +375,19 @@ class LLVMCodeGenerator(MinLangVisitor):
         self.builder.branch(loop_condition_block)
         self.builder.position_at_end(end_block)
         self.while_counter += 1
+
+    def visitStructDefinition(self, ctx):
+        struct_name = ctx.getChild(1).getText()
+        types = self.visitChildren(ctx)
+        struct_type = ir.LiteralStructType(types)
+
+        struct_global = ir.GlobalVariable(self.module, struct_type, name=struct_name)
+        struct_global.global_constant = True
+        struct_global.initializer = None
+
+    def visitStructBlock(self, ctx):
+        return [self.get_llvm_type(ctx.getChild(i).getText()) for i in range(1, ctx.getChildCount()-1, 3)]
+
+    def visitStructDeclaration(self, ctx):
+        print(ctx.getText())
+        return self.visitChildren(ctx)

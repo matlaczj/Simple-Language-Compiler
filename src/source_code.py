@@ -83,7 +83,16 @@ while (control_signal < 95) {
     print control_signal;
     control_signal = control_signal + 1;
 }
-"""
+""",
+    "structTest": r"""
+    typedef struct point {
+        int x;
+        int y;
+        float z;
+    }
+    struct point p;
+    p.x = 1;
+    """
 }
 
-SOURCE_CODE = SOURCE_CODE["baseLineTest"]
+SOURCE_CODE = SOURCE_CODE["structTest"]

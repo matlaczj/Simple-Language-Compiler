@@ -11,12 +11,15 @@ statement:
     | functionDeclaration
     | functionCall
     | ifStatement
-    | whileLoop;
+    | whileLoop
+    | structDefinition
+    | structDeclaration;
 
 declarationStatement: type id ';';
 assignmentStatement: id '=' expression ';';
 id: ID;
 functionId: ID;
+structId: ID;
 
 expression:
 	expression operator expression
@@ -52,6 +55,11 @@ functionCall: functionId '(' argumentList ')';
 argumentList: (expression (',' expression)*);
 functionType: type;
 
+
+structDefinition: 'typedef struct' structId structBlock;
+structBlock: '{'type id ';' (type id ';')*'}';
+structDeclaration: 'struct' structId id ';';
+
 normalBlock: '{' statement* '}';
 ifStatement: 'if' '(' expression ')' normalBlock 'else' normalBlock;
 whileLoop: 'while' '(' expression ')' normalBlock;
@@ -67,4 +75,4 @@ INT: [0-9]+;
 FLOAT: [0-9]+ '.' [0-9]*;
 STRING: '"' .*? '"';
 BOOL: 'true' | 'false';
-ID: [a-zA-Z_][a-zA-Z0-9_]*;
+ID: [a-zA-Z_][.a-zA-Z0-9_]*;
