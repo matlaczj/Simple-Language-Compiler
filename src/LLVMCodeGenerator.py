@@ -9,15 +9,27 @@ class LLVMCodeGenerator(MinLangVisitor):
     def __init__(self):
         super().__init__()
         self.module = ir.Module()
+        self.module.triple = "x86_64-pc-linux-gnu"
         self.variables = {}
-        entry_block = ir.Function(
+        self.main_function = ir.Function(
             module=self.module,
             ftype=ir.FunctionType(return_type=ir.IntType(32), args=[]),
             name="main",
-        ).append_basic_block(name="entry")
-        self.builder = ir.IRBuilder(entry_block)
+        )
+        self.entry_block = self.main_function.append_basic_block(name="entry")
+        self.function_declaration = {}
+        self.functions = []
+        self.structs = {}
+        self.struct_instances = {}
+        self.inside_block = False
+        self.current_function = None
+        self.temp_builder = None
+        self.builder = ir.IRBuilder(self.entry_block)
+        self.local_builder = None
         self.printf_counter = 0
         self.scanf_counter = 0
+        self.if_counter = 0
+        self.while_counter = 0
 
     def visitProgram(self, ctx):
         self.visitChildren(ctx)
@@ -27,18 +39,67 @@ class LLVMCodeGenerator(MinLangVisitor):
     def visitDeclarationStatement(self, ctx):
         var_type = self.visit(ctx.type_())
         var_name = ctx.id_().getText()
+        if var_name in self.variables and not self.inside_block:
+            raise NameError(f"Variable '{var_name}' already declared.")
+
+        if self.inside_block:
+            var_name = self.function_declaration["name"] + "." + var_name
+            alloca = self.builder.alloca(var_type, name=var_name)
+            self.variables[var_name] = alloca
+            return
+
         alloca = self.builder.alloca(var_type, name=var_name)
         self.variables[var_name] = alloca
 
     def visitAssignmentStatement(self, ctx):
         var_name = ctx.id_().getText()
+        if '.' in var_name: # structure member assignment
+            var_name, field = var_name.split('.')
+
+            value = self.visit(ctx.expression())
+            struct_ptr = self.struct_instances[var_name]['ptr']
+            struct_type = self.struct_instances[var_name]['type']
+
+            # find index of the field
+            idx = self.structs[struct_type]['names'].index(field)
+
+            self.builder.store(value, self.builder.gep(struct_ptr, [ir.Constant(ir.IntType(32), 0), ir.Constant(ir.IntType(32), idx)]))  # Update the first struct member
+            return
+
+        if self.inside_block:
+            var_name = self.function_declaration["name"] + "." + var_name
+
         if var_name not in self.variables:
             raise NameError(f"Variable '{var_name}' is not declared.")
+
         var_value = self.visit(ctx.expression())
         self.builder.store(var_value, self.variables[var_name])
 
     def visitId(self, ctx):
         var_name = ctx.getText()
+        if '.' in var_name:
+            var_name, field = var_name.split('.')
+            struct_ptr = self.struct_instances[var_name]['ptr']
+            struct_type = self.struct_instances[var_name]['type']
+            idx = self.structs[struct_type]['names'].index(field)
+            return self.builder.load(self.builder.gep(struct_ptr, [ir.Constant(ir.IntType(32), 0), ir.Constant(ir.IntType(32), idx)]))
+
+        if self.inside_block and var_name not in [
+            self.function_declaration["parameters"][i][1]
+            for i in range(len(self.function_declaration["parameters"]))
+        ]:
+            var_name = self.function_declaration["name"] + "." + var_name
+
+        if self.function_declaration.get("paramList", False):
+            self.function_declaration["parameters"][-1].append(var_name)
+            return
+
+        if self.inside_block and var_name not in self.variables:
+            for i in range(len(self.function_declaration["parameters"])):
+                if var_name in self.function_declaration["parameters"][i]:
+                    return self.current_function.args[i]
+            raise NameError(f"Variable '{var_name}' is not declared.")
+
         if var_name not in self.variables:
             raise NameError(f"Variable '{var_name}' is not declared.")
         return self.builder.load(self.variables[var_name])
@@ -153,16 +214,22 @@ class LLVMCodeGenerator(MinLangVisitor):
 
     def visitType(self, ctx):
         type_name = ctx.getText()
+        llvm_type = None
+
         if type_name == "int":
-            return ir.IntType(32)
+            llvm_type = ir.IntType(32)
         elif type_name == "float":
-            return ir.FloatType()
+            llvm_type = ir.FloatType()
         elif type_name == "bool":
-            return ir.IntType(1)
+            llvm_type = ir.IntType(1)
         elif type_name == "string":
             raise NotImplementedError("String literals are not implemented yet.")
         else:
             raise ValueError("Unknown type: " + type_name)
+
+        if self.function_declaration.get("paramList", False):
+            self.function_declaration["parameters"].append([llvm_type])
+        return llvm_type
 
     def visitPrintStatement(self, ctx):
         value = self.visit(ctx.expression())
@@ -173,7 +240,11 @@ class LLVMCodeGenerator(MinLangVisitor):
         elif value.type == ir.IntType(1):
             printf_format = "%s\n"
         else:
-            printf_format = "%s\n"  # Default to string format
+            printf_format = "%s\n"
+
+        # Add null-terminating character to the format string
+        printf_format += '\0'
+
         printf_func = self.module.globals.get("printf")
         if not printf_func:
             printf_func_type = ir.FunctionType(
@@ -230,3 +301,125 @@ class LLVMCodeGenerator(MinLangVisitor):
         )
         var_alloca = self.variables[var_name]
         self.builder.call(scanf_func, [scan_format_ptr, var_alloca])
+
+    def get_llvm_type(self, type_name):
+        llvm_type = None
+        if type_name == "int":
+            llvm_type = ir.IntType(32)
+        elif type_name == "float":
+            llvm_type = ir.FloatType()
+        elif type_name == "bool":
+            llvm_type = ir.IntType(1)
+        elif type_name == "string":
+            raise NotImplementedError("String literals are not implemented yet.")
+        else:
+            raise ValueError("Unknown type: " + type_name)
+        return llvm_type
+
+    def visitFunctionDeclaration(self, ctx):
+        return self.visitChildren(ctx)
+
+    def visitParameterList(self, ctx):
+        return self.visitChildren(ctx)
+
+    def visitBlock(self, ctx):
+        return_type = self.get_llvm_type(self.function_declaration["type"])
+        parameter_types = [
+            self.function_declaration["parameters"][i][0]
+            for i in range(len(self.function_declaration["parameters"]))
+        ]
+        function_type = ir.FunctionType(return_type, parameter_types)
+
+        self.current_function = ir.Function(
+            self.module, function_type, name=self.function_declaration["name"]
+        )
+        self.inside_block = True
+        basic_block = self.current_function.append_basic_block(name="entry")
+        self.temp_builder = self.builder
+        self.builder = ir.IRBuilder(basic_block)
+
+        self.function_declaration["paramList"] = False
+        self.visitChildren(ctx)
+        self.builder = self.temp_builder
+        self.inside_block = False
+
+    def visitFunctionType(self, ctx):
+        self.function_declaration["type"] = ctx.getText()
+        self.function_declaration["parameters"] = []
+        return self.visitChildren(ctx)
+
+    def visitFunctionId(self, ctx):
+        self.function_declaration["name"] = ctx.getText()
+        self.function_declaration["paramList"] = True
+        return self.visitChildren(ctx)
+
+    def visitReturnStatement(self, ctx):
+        self.builder.ret(self.visitExpression(ctx.expression()))
+
+    def visitFunctionCall(self, ctx):
+        function_name = ctx.getChild(0).getText()
+        if function_name not in self.module.globals:
+            raise NameError(f"Function '{function_name}' is not declared.")
+        function = self.module.globals[function_name]
+        arguments = ctx.argumentList().getText().split(",")
+        args = [self.builder.load(self.variables[arg]) for arg in arguments]
+        return self.builder.call(function, args)
+
+    # TODO: Go back to entry block after if statement.
+    def visitIfStatement(self, ctx):
+        if_block = self.main_function.append_basic_block(name=f"if_block{self.if_counter}")
+        else_block = self.main_function.append_basic_block(name=f"else_block{self.if_counter}")
+        end_block = self.main_function.append_basic_block(name=f"end_block{self.if_counter}")
+        condition = self.visitExpression(ctx.getChild(2))
+
+        self.builder.position_at_end(self.entry_block)
+        self.builder.cbranch(condition, if_block, else_block)
+
+        self.builder.position_at_end(if_block)
+        self.visitStatement(ctx.getChild(4))
+        self.builder.branch(end_block)
+        self.builder.position_at_end(else_block)
+        self.visitStatement(ctx.getChild(6))
+        self.builder.branch(end_block)
+        self.builder.position_at_end(end_block)
+        self.entry_block = end_block
+        self.if_counter += 1
+
+    def visitNormalBlock(self, ctx):
+        return self.visitChildren(ctx)
+
+    def visitWhileLoop(self, ctx):
+        loop_condition_block = self.main_function.append_basic_block(name=f"loop_condition_block{self.while_counter}")
+        loop_block = self.main_function.append_basic_block(name=f"loop_block{self.while_counter}")
+        end_block = self.main_function.append_basic_block(name=f"loop_end_block{self.while_counter}")
+        self.builder.branch(loop_condition_block)
+        self.builder.position_at_end(loop_condition_block)
+        condition = self.visitExpression(ctx.getChild(2))
+        self.builder.cbranch(condition, loop_block, end_block)
+        self.builder.position_at_end(loop_block)
+        self.visitStatement(ctx.getChild(4))
+        self.builder.branch(loop_condition_block)
+        self.builder.position_at_end(end_block)
+        self.while_counter += 1
+
+    def visitStructDefinition(self, ctx):
+        struct_name = ctx.getChild(1).getText()
+        types, names = self.visitChildren(ctx)
+        struct_type = ir.LiteralStructType(types)
+        self.structs[struct_name] = {}
+        self.structs[struct_name]['fields'] = types
+        self.structs[struct_name]['type'] = struct_type
+        self.structs[struct_name]['names'] = names
+        struct_global = ir.GlobalVariable(self.module, struct_type, name=struct_name)
+        struct_global.initializer = ir.Constant(struct_type, [ir.Constant(field_type, None) for field_type in types])
+
+    def visitStructBlock(self, ctx):
+        return [self.get_llvm_type(ctx.getChild(i).getText()) for i in range(1, ctx.getChildCount()-1, 3)], [ctx.getChild(i).getText() for i in range(2, ctx.getChildCount()-1, 3)]
+
+    def visitStructDeclaration(self, ctx):
+        struct_type = ctx.getChild(1).getText()
+        text_type = struct_type
+        variable_name = ctx.getChild(2).getText()
+        struct_type = self.structs[struct_type]['type']
+        struct_ptr = self.builder.alloca(struct_type, name=variable_name)
+        self.struct_instances[variable_name] = {'ptr': struct_ptr, 'type': text_type}

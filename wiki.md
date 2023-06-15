@@ -14,3 +14,8 @@ antlr4-parse /workspaces/simple_lang_compiler/src/MinLang.g4 program -gui /works
 ```bash
     antlr4 -Dlanguage=Python3 -visitor /workspaces/simple_lang_compiler/src/MinLang.g4 -o /workspaces/simple_lang_compiler/src/antlr
 ```
+
+## Running IR code
+```bash
+    lli /workspaces/simple_lang_compiler/src/output.ll
+```
