@@ -19,6 +19,8 @@ class LLVMCodeGenerator(MinLangVisitor):
         self.entry_block = self.main_function.append_basic_block(name="entry")
         self.function_declaration = {}
         self.functions = []
+        self.structs = {}
+        self.struct_instances = {}
         self.inside_block = False
         self.current_function = None
         self.temp_builder = None
@@ -51,6 +53,19 @@ class LLVMCodeGenerator(MinLangVisitor):
 
     def visitAssignmentStatement(self, ctx):
         var_name = ctx.id_().getText()
+        if '.' in var_name: # structure member assignment
+            var_name, field = var_name.split('.')
+
+            value = self.visit(ctx.expression())
+            struct_ptr = self.struct_instances[var_name]['ptr']
+            struct_type = self.struct_instances[var_name]['type']
+
+            # find index of the field
+            idx = self.structs[struct_type]['names'].index(field)
+
+            self.builder.store(value, self.builder.gep(struct_ptr, [ir.Constant(ir.IntType(32), 0), ir.Constant(ir.IntType(32), idx)]))  # Update the first struct member
+            return
+
         if self.inside_block:
             var_name = self.function_declaration["name"] + "." + var_name
 
@@ -62,6 +77,13 @@ class LLVMCodeGenerator(MinLangVisitor):
 
     def visitId(self, ctx):
         var_name = ctx.getText()
+        if '.' in var_name:
+            var_name, field = var_name.split('.')
+            struct_ptr = self.struct_instances[var_name]['ptr']
+            struct_type = self.struct_instances[var_name]['type']
+            idx = self.structs[struct_type]['names'].index(field)
+            return self.builder.load(self.builder.gep(struct_ptr, [ir.Constant(ir.IntType(32), 0), ir.Constant(ir.IntType(32), idx)]))
+
         if self.inside_block and var_name not in [
             self.function_declaration["parameters"][i][1]
             for i in range(len(self.function_declaration["parameters"]))
@@ -219,6 +241,10 @@ class LLVMCodeGenerator(MinLangVisitor):
             printf_format = "%s\n"
         else:
             printf_format = "%s\n"
+
+        # Add null-terminating character to the format string
+        printf_format += '\0'
+
         printf_func = self.module.globals.get("printf")
         if not printf_func:
             printf_func_type = ir.FunctionType(
@@ -378,16 +404,22 @@ class LLVMCodeGenerator(MinLangVisitor):
 
     def visitStructDefinition(self, ctx):
         struct_name = ctx.getChild(1).getText()
-        types = self.visitChildren(ctx)
+        types, names = self.visitChildren(ctx)
         struct_type = ir.LiteralStructType(types)
-
+        self.structs[struct_name] = {}
+        self.structs[struct_name]['fields'] = types
+        self.structs[struct_name]['type'] = struct_type
+        self.structs[struct_name]['names'] = names
         struct_global = ir.GlobalVariable(self.module, struct_type, name=struct_name)
-        struct_global.global_constant = True
-        struct_global.initializer = None
+        struct_global.initializer = ir.Constant(struct_type, [ir.Constant(field_type, None) for field_type in types])
 
     def visitStructBlock(self, ctx):
-        return [self.get_llvm_type(ctx.getChild(i).getText()) for i in range(1, ctx.getChildCount()-1, 3)]
+        return [self.get_llvm_type(ctx.getChild(i).getText()) for i in range(1, ctx.getChildCount()-1, 3)], [ctx.getChild(i).getText() for i in range(2, ctx.getChildCount()-1, 3)]
 
     def visitStructDeclaration(self, ctx):
-        print(ctx.getText())
-        return self.visitChildren(ctx)
+        struct_type = ctx.getChild(1).getText()
+        text_type = struct_type
+        variable_name = ctx.getChild(2).getText()
+        struct_type = self.structs[struct_type]['type']
+        struct_ptr = self.builder.alloca(struct_type, name=variable_name)
+        self.struct_instances[variable_name] = {'ptr': struct_ptr, 'type': text_type}

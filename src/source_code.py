@@ -92,6 +92,21 @@ while (control_signal < 95) {
     }
     struct point p;
     p.x = 1;
+    p.y = 2;
+    p.z = 3.0;
+
+    print p.x * p.y;
+    typedef struct mapping {
+        int input_domain_idx;
+        int output_domain_idx;
+    }
+    struct mapping m;
+    m.input_domain_idx=4;
+    m.output_domain_idx=3;
+    int sum;
+    sum = m.input_domain_idx + m.output_domain_idx;
+    print sum;
+
     """
 }
 
