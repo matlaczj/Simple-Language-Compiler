@@ -351,6 +351,10 @@ class LLVMCodeGenerator(MinLangVisitor):
 
     def visitFunctionId(self, ctx):
         self.function_declaration["name"] = ctx.getText()
+        if self.function_declaration["name"] in self.variables.keys():
+            raise NameError(
+                f"Id '{self.function_declaration['name']}' already declared."
+            )
         self.function_declaration["paramList"] = True
         return self.visitChildren(ctx)
 
