@@ -1,27 +1,30 @@
 SOURCE_CODE = {
     "ifStatement": r"""
-int a;
-a = 3;
-if (a > 5) 
+float cash;
+cash = 100.0;
+
+float tax;
+tax = 0.0;
+
+if (cash > 50.0)
 {
-    print 1;
+    tax = 0.1;
 }
 else
 {
-    print 0;
+    tax = 0.2;
 }
 
-if (a > 2)
-{
-    print 1;
-}
-else
-{
-    print 0;
-}
+float tax_amount;
+tax_amount = cash * tax;
+
+cash = cash - tax_amount;
+print cash;
 """,
     "functionDeclarationAndCall": r"""
-function int test (int a, int b) {
+int z;
+z = 123;
+function int add(int a, int b) {
     int z;
     z = a + b;
     return z;
@@ -30,17 +33,18 @@ int a;
 a = 1;
 int b;
 b = 1;
-print test(a, b);
+print add(a, b);
+print z;
 """,
     "whileLoop": r"""
-int a;
-a = 10;
-while (a > 0)
+int cash;
+cash = 10;
+while (cash > 0)
 {
-    print a;
-    a = a - 1; 
+    print cash;
+    cash = cash - 1;
 }
-print a;
+print cash;
 """,
     "baseLineTest": r"""
 // Calculate control signal
@@ -86,28 +90,27 @@ while (control_signal < 95) {
 """,
     "structTest": r"""
     typedef struct point {
-        int x;
-        int y;
+        float x;
+        float y;
         float z;
     }
+
+    float x;
+    float y;
+    float z;
+    x = 1.0;
+    y = 2.0;
+    z = 3.0;
+
     struct point p;
-    p.x = 1;
-    p.y = 2;
-    p.z = 3.0;
+    p.x = x;
+    p.y = y;
+    p.z = z;
 
-    print p.x * p.y;
-    typedef struct mapping {
-        int input_domain_idx;
-        int output_domain_idx;
-    }
-    struct mapping m;
-    m.input_domain_idx=4;
-    m.output_domain_idx=3;
-    int sum;
-    sum = m.input_domain_idx + m.output_domain_idx;
-    print sum;
-
+    print p.x;
+    print p.y;
+    print p.z;
     """
 }
 
-SOURCE_CODE = SOURCE_CODE["structTest"]
+SOURCE_CODE = SOURCE_CODE["functionDeclarationAndCall"]

@@ -237,6 +237,7 @@ class LLVMCodeGenerator(MinLangVisitor):
             printf_format = "%d\n"
         elif value.type == ir.FloatType():
             printf_format = "%f\n"
+            value = self.builder.fpext(value, ir.DoubleType())
         elif value.type == ir.IntType(1):
             printf_format = "%s\n"
         else:
@@ -350,6 +351,10 @@ class LLVMCodeGenerator(MinLangVisitor):
 
     def visitFunctionId(self, ctx):
         self.function_declaration["name"] = ctx.getText()
+        if self.function_declaration["name"] in self.variables.keys():
+            raise NameError(
+                f"Id '{self.function_declaration['name']}' already declared."
+            )
         self.function_declaration["paramList"] = True
         return self.visitChildren(ctx)
 
