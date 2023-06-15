@@ -9,7 +9,6 @@ class LLVMCodeGenerator(MinLangVisitor):
     def __init__(self):
         super().__init__()
         self.module = ir.Module()
-        self.module.triple = "x86_64-pc-linux-gnu"
         self.variables = {}
         entry_block = ir.Function(
             module=self.module,
@@ -19,7 +18,6 @@ class LLVMCodeGenerator(MinLangVisitor):
         self.builder = ir.IRBuilder(entry_block)
         self.printf_counter = 0
         self.scanf_counter = 0
-        self.to_be_declared = []
 
     def visitProgram(self, ctx):
         self.visitChildren(ctx)
@@ -29,26 +27,15 @@ class LLVMCodeGenerator(MinLangVisitor):
     def visitDeclarationStatement(self, ctx):
         var_type = self.visit(ctx.type_())
         var_name = ctx.id_().getText()
-        if var_type == "string": # string is a special case, declare when size is known
-            self.to_be_declared.append(var_name)
-            return
-
         alloca = self.builder.alloca(var_type, name=var_name)
         self.variables[var_name] = alloca
 
     def visitAssignmentStatement(self, ctx):
         var_name = ctx.id_().getText()
-        if var_name not in self.variables and var_name not in self.to_be_declared:
+        if var_name not in self.variables:
             raise NameError(f"Variable '{var_name}' is not declared.")
         var_value = self.visit(ctx.expression())
-
-        if type(var_value) == tuple:
-            _, literal = var_value
-            string_value = self.createStringGlobalVariable(literal.replace('"', ""))
-            self.to_be_declared.remove(var_name)
-            self.variables[var_name] = string_value
-        else:
-            self.builder.store(var_value, self.variables[var_name])
+        self.builder.store(var_value, self.variables[var_name])
 
     def visitId(self, ctx):
         var_name = ctx.getText()
@@ -66,7 +53,7 @@ class LLVMCodeGenerator(MinLangVisitor):
         elif literal_type == MinLangParser.BOOL:
             return ir.Constant(ir.IntType(1), int(literal == "true"))
         elif literal_type == MinLangParser.STRING:
-            return literal_type, literal
+            raise NotImplementedError("String literals are not implemented yet.")
 
     def visitArithmeticOperator(self, ctx):
         operator = ctx.getText()
@@ -173,63 +160,44 @@ class LLVMCodeGenerator(MinLangVisitor):
         elif type_name == "bool":
             return ir.IntType(1)
         elif type_name == "string":
-            return "string"
+            raise NotImplementedError("String literals are not implemented yet.")
         else:
             raise ValueError("Unknown type: " + type_name)
 
     def visitPrintStatement(self, ctx):
         value = self.visit(ctx.expression())
-        var_name = ctx.expression().getText()
-        # Handle string literals
-        if isinstance(value, tuple):
-            _, string_value = value
-            value = self.createStringGlobalVariable(string_value)
-
-        printf_format = self.getPrintfFormat(value.type)
-        printf_func = self.getPrintfFunction()
-
-        printf_format_global = self.createPrintfFormatGlobal(printf_format)
-        if isinstance(value.type, ir.ArrayType):
-            var_name = ctx.expression().getText()
-            self.builder.call(printf_func, [self.builder.bitcast(self.variables[var_name], ir.IntType(8).as_pointer())])
+        if value.type == ir.IntType(32):
+            printf_format = "%d\n"
+        elif value.type == ir.FloatType():
+            printf_format = "%f\n"
+        elif value.type == ir.IntType(1):
+            printf_format = "%s\n"
         else:
-            self.builder.call(printf_func, [printf_format_global, value])
-
-    def createStringGlobalVariable(self, string_value):
-        string_value = string_value.replace('"', "")
-        string_length = len(string_value) + 1
-        value = ir.GlobalVariable(self.module, ir.ArrayType(ir.IntType(8), string_length), name=f"string_literal_{self.printf_counter}")
-        value.initializer = ir.Constant(ir.ArrayType(ir.IntType(8), string_length), bytearray(string_value + "\0", 'utf8'))
-        value.linkage = 'internal'
-        self.printf_counter += 1
-        return value
-
-    def getPrintfFormat(self, value_type):
-        if value_type == ir.IntType(32):
-            return "%d\n"
-        elif value_type == ir.FloatType():
-            return "%f\n"
-        elif value_type == ir.IntType(1):
-            return "%s\n"
-        else:
-            return "%s\n"  # Default to string format
-
-    def getPrintfFunction(self):
+            printf_format = "%s\n"  # Default to string format
         printf_func = self.module.globals.get("printf")
         if not printf_func:
-            printf_func_type = ir.FunctionType(ir.IntType(32), [ir.IntType(8).as_pointer()], var_arg=True)
+            printf_func_type = ir.FunctionType(
+                ir.IntType(32), [ir.IntType(8).as_pointer()], var_arg=True
+            )
             printf_func = ir.Function(self.module, printf_func_type, name="printf")
             self.module.globals["printf"] = printf_func
-        return printf_func
-
-    def createPrintfFormatGlobal(self, printf_format):
-        printf_format_const = ir.Constant(ir.ArrayType(ir.IntType(8), len(printf_format)), bytearray(printf_format.encode("utf8")))
-        printf_format_global = ir.GlobalVariable(self.module, printf_format_const.type, name=f"printf_format_{self.printf_counter}")
+        printf_format_const = ir.Constant(
+            ir.ArrayType(ir.IntType(8), len(printf_format)),
+            bytearray(printf_format.encode("utf8")),
+        )
+        printf_format_global = ir.GlobalVariable(
+            self.module,
+            printf_format_const.type,
+            name=f"printf_format_{self.printf_counter}",
+        )
         self.printf_counter += 1
         printf_format_global.linkage = "internal"
         printf_format_global.global_constant = True
         printf_format_global.initializer = printf_format_const
-        return self.builder.bitcast(printf_format_global, ir.IntType(8).as_pointer())
+        printf_format_ptr = self.builder.bitcast(
+            printf_format_global, ir.IntType(8).as_pointer()
+        )
+        self.builder.call(printf_func, [printf_format_ptr, value])
 
     def visitReadStatement(self, ctx):
         var_name = ctx.id_().getText()
