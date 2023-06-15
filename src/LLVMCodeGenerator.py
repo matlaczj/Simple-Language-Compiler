@@ -237,6 +237,7 @@ class LLVMCodeGenerator(MinLangVisitor):
             printf_format = "%d\n"
         elif value.type == ir.FloatType():
             printf_format = "%f\n"
+            value = self.builder.fpext(value, ir.DoubleType())
         elif value.type == ir.IntType(1):
             printf_format = "%s\n"
         else:
