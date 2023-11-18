@@ -1,6 +1,9 @@
 # Simple Language Compiler
 
-<img src="https://th.bing.com/th/id/OIG.xZb27jNIXPgLbsvj9v8H?pid=ImgGn" width="300" height="300" style="display: block; margin: auto;">
+<p align="center">
+  <img src="simple-language-compiler.png" alt="Logo" width="400"/>
+</p>
+
 
 Welcome to the Simple Language Compiler project! This endeavor aims to independently design a straightforward programming language and implement its compiler, covering all stages of source code processing up to the creation of machine code. The use of tools that facilitate the work of compiler developers is encouraged.
 
