@@ -1,0 +1,13 @@
+<STYLESHEET> ::= <rule> | <rule> <STYLESHEET>
+<rule> ::= <selectors> <INDENT> <declarations> <DEDENT>
+<selectors> ::= <selector> | <selector> "," <selectors>
+<selector> ::= <simple_selector> | <simple_selector> <combinator> <simple_selector> | <simple_selector> ":" <selector_keyword>
+<simple_selector> ::= "#" <IDENTIFIER> | "." <IDENTIFIER> | ":" <IDENTIFIER> | "*" | <IDENTIFIER>
+<combinator> ::= "+" | ">" | " "
+<declarations> ::= <declaration> | <declaration> ";" | <declaration> ";" <declarations>
+<declaration> ::= <property_keyword> ":" <values>
+<property_keyword> ::= "background" | "color" | "box-shadow" | "text-shadow" | "content" | "border" | "page-break-inside" | "font-weight" | "max-width" | "orphans" | "widows" | "font-size" | "font-family" | "font-style" | "display" | "margin"
+<values> ::= <value> | <value> <values>
+<value> ::= <COLOR> | <URL> | <LENGTH> | <STRING> |  <NUMBER> | <PERCENTAGE> | <IDENTIFIER> | <value_keyword>
+<value_keyword> ::= "!important" | "solid" | "avoid" | "bolder" | "smaller" | "serif" | "normal" | "white" | "none" | "flex"
+<selector_keyword> ::= "visited"
