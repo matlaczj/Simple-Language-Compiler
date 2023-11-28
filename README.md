@@ -1,7 +1,7 @@
 # Simple Language Compiler
 
 <p align="center">
-  <img src="simple-language-compiler.png" alt="Logo" width="400"/>
+  <img src="logo.png" alt="Logo" width="400"/>
 </p>
 
 
