@@ -12,7 +12,7 @@ Welcome to the Simple Language Compiler project! This endeavor aims to independe
 The front end of the compiler, responsible for lexical-syntactic analysis, utilizes the powerful **ANTLR** analyzer generator or other similar tools. From the resulting **AST** (Abstract Syntax Tree), an intermediate representation (**IR**) adhering to the **LLVM** specification is generated. Subsequent stages involve optimizing the intermediate representation and generating machine code using the LLVM toolset.
 
 <p align="center">
-  <img src="detailed_information_flow.png" alt="Logo" width="400"/>
+  <img src="detailed_information_flow.png" alt="detailed_information_flow"/>
 </p>
 
 ## Stage 1: Simple Variable Operations
